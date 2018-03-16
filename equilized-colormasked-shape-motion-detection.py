@@ -32,13 +32,14 @@ def find_biggest_contour(image_masked, image):
         _, biggest_contour = max(contour_sizes, key=lambda x: x[0])
         
         ((x, y), radius) = cv2.minEnclosingCircle(biggest_contour)
-        cx, cy = int(x), int(y)
+        cx, cy, radius = int(x), int(y), int(radius)
 
         M = cv2.moments(biggest_contour)
         center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
         history.tracker.append(center)
 
-        cv2.circle(image, (cx, cy), int(radius), green, 2)
+        cv2.circle(image, (cx, cy), radius, green, 2)
+        cv2.rectangle(image, (cx - radius,  cy + radius), (cx + radius, cy - radius), green)
 
         checkGamePlay(cx, cy, image)
 
