@@ -28,7 +28,7 @@ def find_ball(equilizedImage, img):
     image_blur_hsv = cv2.cvtColor(image_blur, cv2.COLOR_RGB2HSV)
 
     # Filter by colour
-    min_yellow = np.array([20, 50, 100])
+    min_yellow = np.array([20, 90, 100])
     max_yellow = np.array([60, 255, 255])
     mask = cv2.inRange(image_blur_hsv, min_yellow, max_yellow)
 
@@ -48,6 +48,8 @@ def equilizeHistogram(image):
     cv2.equalizeHist(channels[0], channels[0])
     cv2.merge(channels, ycrcb)
     cv2.cvtColor(ycrcb, cv2.COLOR_YCR_CB2BGR, ycrcb)
+    
+    cv2.imshow('equilized', ycrcb)
     return ycrcb
 
 cap = cv2.VideoCapture(0)
