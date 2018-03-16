@@ -8,12 +8,14 @@ class History(object):
         self.lastCheckTime = time.time()
         self.status = 'No one is playing the Game'
         self.tracker = []
+        self.sign = 1
 
 # constants
 green = (0, 255, 0)
 ocean_blue = (49, 210, 247)
 history = History()
 waitTime = 0.002
+allowedDisturbance = 10
 
 def printStatus(image):
     cv2.putText(image, history.status, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, green, 1)
@@ -36,6 +38,9 @@ def find_biggest_contour(image_masked, image):
 
         M = cv2.moments(biggest_contour)
         center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+
+        if len(history.tracker) > 0:
+            checkDirectionBalance(center, history.tracker[len(history.tracker) - 1])
         history.tracker.append(center)
 
         cv2.circle(image, (cx, cy), radius, green, 2)
@@ -44,6 +49,15 @@ def find_biggest_contour(image_masked, image):
         checkGamePlay(cx, cy, image)
 
     printStatus(image)
+
+
+def checkDirectionBalance(center, centerLast):
+    if abs(center[0] - centerLast[0]) > allowedDisturbance:
+        sign = 1 if center[0] > centerLast[0] else -1
+
+        if sign != history.sign:
+            del history.tracker[:]
+            history.sign = - history.sign
 
 
 def checkGamePlay(x, y, image):
