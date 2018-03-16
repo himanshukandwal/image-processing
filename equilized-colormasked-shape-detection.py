@@ -8,14 +8,7 @@ from math import cos, sin, pi
 green = (0, 255, 0)
 
 def find_biggest_contour(image_masked, image):
-    # Copy
     image_masked = image_masked.copy()
-    #input, gives all the contours, contour approximation compresses horizontal, 
-    #vertical, and diagonal segments and leaves only their end points. For example, 
-    #an up-right rectangular contour is encoded with 4 points.
-    #Optional output vector, containing information about the image topology. 
-    #It has as many elements as the number of contours.
-    #we dont need it
     _, contours, _ = cv2.findContours(image_masked, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     # Isolate largest contour
@@ -35,7 +28,7 @@ def find_ball(equilizedImage, img):
     image_blur_hsv = cv2.cvtColor(image_blur, cv2.COLOR_RGB2HSV)
 
     # Filter by colour
-    min_yellow = np.array([20, 100, 100])
+    min_yellow = np.array([20, 50, 100])
     max_yellow = np.array([60, 255, 255])
     mask = cv2.inRange(image_blur_hsv, min_yellow, max_yellow)
 
@@ -47,7 +40,7 @@ def find_ball(equilizedImage, img):
     cv2.imshow('masked', mask_clean)
 
     find_biggest_contour(mask_clean, img)
-    return img
+    return (mask_clean, img)
 
 def equilizeHistogram(image):
     ycrcb = cv2.cvtColor(image, cv2.COLOR_BGR2YCR_CB)
@@ -64,7 +57,7 @@ while(True):
 
     equilizedImage = equilizeHistogram(image)
 
-    result = find_ball(equilizedImage, image)
+    mask_result, result = find_ball(equilizedImage, image)
 
     cv2.imshow('frame', result)
     if cv2.waitKey(1) & 0xFF == ord('q'):
