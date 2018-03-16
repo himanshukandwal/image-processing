@@ -7,29 +7,28 @@ from math import cos, sin, pi
 
 green = (0, 255, 0)
 
-def find_biggest_contour(image_masked, image):
-    # Copy
-    image_masked = image_masked.copy()
-    #input, gives all the contours, contour approximation compresses horizontal, 
-    #vertical, and diagonal segments and leaves only their end points. For example, 
-    #an up-right rectangular contour is encoded with 4 points.
-    #Optional output vector, containing information about the image topology. 
-    #It has as many elements as the number of contours.
-    #we dont need it
-    img, contours, hierarchy = cv2.findContours(image_masked, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+def overlay_mask(mask, image):
+	#make the mask rgb
+    rgb_mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
+    #calculates the weightes sum of two arrays. in our case image arrays
+    #input, how much to weight each. 
+    #optional depth value set to 0 no need
+    img = cv2.addWeighted(rgb_mask, 0.5, image, 0.5, 0)
+    img = cv2.cvtColor(rgb_mask, cv2.COLOR_RGB2BGR)
+    return img
 
-    # Isolate largest contour
-    if contours is not None and (len(contours) > 0):
-        contour_sizes = [(cv2.contourArea(contour), contour) for contour in contours]
-        _, biggest_contour = max(contour_sizes, key=lambda x: x[0])
-        
-        x, y, w, h = cv2.boundingRect(biggest_contour)
-        radius = int(w/2)
-        cv2.circle(image, (int(x + w/2), int(y + h/2)), radius, green, 3)
-        cv2.rectangle(image, (x, y), (x + w, y + h), green)
+def find_biggest_contour(image_masked, image): 
+    
+    circles = cv2.HoughCircles(image_masked, cv2.HOUGH_GRADIENT, 1, 4, param1 = 50, param2 = 30, minRadius = 0, maxRadius = 0)
+    
+    if circles is not None and len(circles) > 0:
+        print 'here'
+        circle_sizes = [(2 * np.pi * circle[2] ** 2, circle) for circle in circles]
+        _, biggest_circle = max(circle_sizes, key=lambda x: x[0])
+        cv2.circle(image, (biggest_circle[0], biggest_circle[1]), biggest_circle[2], green, 2)
 
-def find_ball(image):
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+def find_ball(img):
+    image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     
     # We want to eliminate noise from our image. clean. smooth colors without dots
     # Blurs an image using a Gaussian filter. input, kernel size, how much to filter, empty)
@@ -72,10 +71,10 @@ def find_ball(image):
 
     # Find biggest strawberry
     #get back list of segmented strawberries and an outline for the biggest one
-    find_biggest_contour(mask_clean, image)
+    find_biggest_contour(mask_clean, img)
     
     #we're done, convert back to original color scheme
-    detected_image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    detected_image = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
     return detected_image
 
 def equilizeHistogram(image):
@@ -87,14 +86,6 @@ def equilizeHistogram(image):
     # convert the YUV image back to RGB format
     img_output = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR)
     return img_output
-
-def equilizeHistogram2(img):
-    ycrcb=cv2.cvtColor(img,cv2.COLOR_BGR2YCR_CB)
-    channels=cv2.split(ycrcb)
-    cv2.equalizeHist(channels[0],channels[0])
-    cv2.merge(channels,ycrcb)
-    cv2.cvtColor(ycrcb,cv2.COLOR_YCR_CB2BGR,img)
-    return img
 
 cap = cv2.VideoCapture(0)
 while(True):
