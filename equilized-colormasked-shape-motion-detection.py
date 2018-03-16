@@ -15,11 +15,12 @@ ocean_blue = (49, 210, 247)
 history = History()
 waitTime = 0.002
 
-def printStatus(x, y, image):
+def printStatus(image):
     cv2.putText(image, history.status, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, green, 1)
 
-    if len(history.tracker) > 0:
-        cv2.line(image, (x, y), history.tracker[len(history.tracker) - 1], ocean_blue, 5)
+    for i in xrange(1, len(history.tracker)):
+        thickness = int(np.sqrt(64 / float(i + 1)) * 2.5)
+        cv2.line(image, history.tracker[i - 1], history.tracker[i], ocean_blue, thickness)
 
 def find_biggest_contour(image_masked, image):
     image_masked = image_masked.copy()
@@ -30,15 +31,18 @@ def find_biggest_contour(image_masked, image):
         contour_sizes = [(cv2.contourArea(contour), contour) for contour in contours]
         _, biggest_contour = max(contour_sizes, key=lambda x: x[0])
         
-        x, y, w, h = cv2.boundingRect(biggest_contour)
+        ((x, y), radius) = cv2.minEnclosingCircle(biggest_contour)
+        cx, cy = int(x), int(y)
 
-        cv2.rectangle(image, (x, y), (x + w, y + h), green)
+        M = cv2.moments(biggest_contour)
+        center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+        history.tracker.append(center)
 
-        radius, cx, cy = int(w/2), int(x + w/2), int(y + h/2)
-        cv2.circle(image, (cx, cy), radius, green, 3)
-        
-        checkGamePlay(cx, cy, image)        
-        printStatus(cx, cy, image)
+        cv2.circle(image, (cx, cy), int(radius), green, 2)
+
+        checkGamePlay(cx, cy, image)
+
+    printStatus(image)
 
 
 def checkGamePlay(x, y, image):
@@ -49,9 +53,6 @@ def checkGamePlay(x, y, image):
             # euclidean distance, if changes by 5 pixels, motion detected
             dist = np.linalg.norm(np.array((x, y)) - np.array((history.lastX, history.lastY)))
             history.status = 'Someone playing the Game' if dist >= 15 else 'No one is playing the Game'
-
-            # print 'euclidean distance:', dist
-            history.tracker.append((history.lastX, history.lastY))
 
         history.lastX, history.lastY = x, y
 
