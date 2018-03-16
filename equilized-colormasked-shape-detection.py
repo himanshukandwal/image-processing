@@ -16,7 +16,7 @@ def find_biggest_contour(image_masked, image):
     #Optional output vector, containing information about the image topology. 
     #It has as many elements as the number of contours.
     #we dont need it
-    img, contours, hierarchy = cv2.findContours(image_masked, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    _, contours, _ = cv2.findContours(image_masked, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     # Isolate largest contour
     if contours is not None and (len(contours) > 0):
@@ -28,87 +28,47 @@ def find_biggest_contour(image_masked, image):
         cv2.circle(image, (int(x + w/2), int(y + h/2)), radius, green, 3)
         cv2.rectangle(image, (x, y), (x + w, y + h), green)
 
-def find_ball(image):
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    
-    # We want to eliminate noise from our image. clean. smooth colors without dots
-    # Blurs an image using a Gaussian filter. input, kernel size, how much to filter, empty)
-    image_blur = cv2.GaussianBlur(image, (5, 5), 0)
+def find_ball(equilizedImage, img):
+    image = cv2.cvtColor(equilizedImage, cv2.COLOR_BGR2RGB)
 
-    # It unlike RGB, HSV separates luma, or the image intensity, from chroma or the color information.
-    # just want to focus on color, segmentation
+    image_blur = cv2.GaussianBlur(image, (5, 5), 0)
     image_blur_hsv = cv2.cvtColor(image_blur, cv2.COLOR_RGB2HSV)
 
     # Filter by colour
-    # 0-10 hue
-    #minimum yellow amount, max yellow amount
     min_yellow = np.array([20, 100, 100])
     max_yellow = np.array([60, 255, 255])
-    #layer
     mask = cv2.inRange(image_blur_hsv, min_yellow, max_yellow)
 
-    # # brightness of a color is hue
-    # # 170-180 hue
-    # min_yellow2 = np.array([52, 47, 48])
-    # max_yellow2 = np.array([60, 100, 97])
-    # mask2 = cv2.inRange(image_blur_hsv, min_yellow2, max_yellow2)
-
-    # #looking for what is in both ranges
-    # # Combine masks
-    # mask = mask1 + mask2
-
-    # Clean up
-    #we want to circle our strawberry so we'll circle it with an ellipse
-    #with a shape of 15x15
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
-    #morph the image. closing operation Dilation followed by Erosion. 
-    #It is useful in closing small holes inside the foreground objects, 
-    #or small black points on the object.
+
     mask_closed = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
-    #erosion followed by dilation. It is useful in removing noise
     mask_clean = cv2.morphologyEx(mask_closed, cv2.MORPH_OPEN, kernel)
 
     cv2.imshow('masked', mask_clean)
 
-    # Find biggest strawberry
-    #get back list of segmented strawberries and an outline for the biggest one
-    find_biggest_contour(mask_clean, image)
-    
-    #we're done, convert back to original color scheme
-    detected_image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-    return detected_image
-
-def equilizeHistogram(image):
-    img_yuv = cv2.cvtColor(image.copy(), cv2.COLOR_BGR2YUV)
-
-    # equalize the histogram of the Y channel
-    img_yuv[:,:,0] = cv2.equalizeHist(img_yuv[:,:,0])
-
-    # convert the YUV image back to RGB format
-    img_output = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR)
-    return img_output
-
-def equilizeHistogram2(img):
-    ycrcb=cv2.cvtColor(img,cv2.COLOR_BGR2YCR_CB)
-    channels=cv2.split(ycrcb)
-    cv2.equalizeHist(channels[0],channels[0])
-    cv2.merge(channels,ycrcb)
-    cv2.cvtColor(ycrcb,cv2.COLOR_YCR_CB2BGR,img)
+    find_biggest_contour(mask_clean, img)
     return img
 
+def equilizeHistogram(image):
+    ycrcb = cv2.cvtColor(image, cv2.COLOR_BGR2YCR_CB)
+    channels = cv2.split(ycrcb)
+    cv2.equalizeHist(channels[0], channels[0])
+    cv2.merge(channels, ycrcb)
+    cv2.cvtColor(ycrcb, cv2.COLOR_YCR_CB2BGR, ycrcb)
+    return ycrcb
+
 cap = cv2.VideoCapture(0)
+
 while(True):
-    # Capture frame-by-frame
     ret, image = cap.read()
 
     equilizedImage = equilizeHistogram(image)
 
-    result = find_ball(equilizedImage)
+    result = find_ball(equilizedImage, image)
 
     cv2.imshow('frame', result)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
-# When everything done, release the capture
 cap.release()
 cv2.destroyAllWindows()
