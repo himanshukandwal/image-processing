@@ -39,8 +39,9 @@ def find_biggest_contour(image_masked, image):
         M = cv2.moments(biggest_contour)
         center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
 
-        if len(history.tracker) > 0:
-            checkDirectionBalance(center, history.tracker[len(history.tracker) - 1])
+        if history.lastX is not None:
+            checkDirectionBalance(cx, cy)
+        
         history.tracker.append(center)
 
         cv2.circle(image, (cx, cy), radius, green, 2)
@@ -51,10 +52,10 @@ def find_biggest_contour(image_masked, image):
     printStatus(image)
 
 
-def checkDirectionBalance(center, centerLast):
-    if abs(center[0] - centerLast[0]) > allowedDisturbance:
-        sign = 1 if center[0] > centerLast[0] else -1
-
+def checkDirectionBalance(x, y):
+    if abs(x - history.lastX) > allowedDisturbance:
+        sign = 1 if x > history.lastX else -1
+        
         if sign != history.sign:
             del history.tracker[:]
             history.sign = - history.sign
